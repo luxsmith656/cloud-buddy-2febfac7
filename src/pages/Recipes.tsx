@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
 import { useAuth } from "@/contexts/AuthContext";
+import { uploadCompressedImage, ACCEPT_ATTR } from "@/lib/imageUpload";
 
 interface RecipeIngredientForm { ingredient_id: string; quantity: number; }
 
@@ -27,39 +28,18 @@ const Recipes = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const uploadImage = async (file: File) => {
-    setUploadingImage(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `recipes/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath);
-
-      setUploadingImage(false);
-      return data.publicUrl;
-    } catch (error) {
-      setUploadingImage(false);
-      toast.error('Error uploading image');
-      return null;
-    }
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = await uploadImage(file);
-      if (imageUrl) {
-        setRecipeImage(imageUrl);
-      }
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const imageUrl = await uploadCompressedImage(file, "recipes");
+      setRecipeImage(imageUrl);
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err?.message || "Error uploading image");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -257,7 +237,7 @@ const Recipes = () => {
               <div className="flex items-center gap-2">
                 <Input
                   type="file"
-                  accept="image/*"
+                  accept={ACCEPT_ATTR}
                   onChange={handleImageUpload}
                   disabled={uploadingImage}
                   className="flex-1"
