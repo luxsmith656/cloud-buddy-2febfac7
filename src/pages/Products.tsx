@@ -46,39 +46,18 @@ const Products = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const uploadImage = async (file: File) => {
-    setUploadingImage(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `products/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath);
-
-      setUploadingImage(false);
-      return data.publicUrl;
-    } catch (error) {
-      setUploadingImage(false);
-      toast.error('Error uploading image');
-      return null;
-    }
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = await uploadImage(file);
-      if (imageUrl) {
-        setForm(prev => ({ ...prev, image_url: imageUrl }));
-      }
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const imageUrl = await uploadCompressedImage(file, "products");
+      setForm(prev => ({ ...prev, image_url: imageUrl }));
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err?.message || "Error uploading image");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -370,7 +349,7 @@ const Products = () => {
               <div className="flex items-center gap-2">
                 <Input
                   type="file"
-                  accept="image/*"
+                  accept={ACCEPT_ATTR}
                   onChange={handleImageUpload}
                   disabled={uploadingImage}
                   className="flex-1"
