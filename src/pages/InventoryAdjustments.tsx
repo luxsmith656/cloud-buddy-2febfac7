@@ -58,7 +58,7 @@ export default function InventoryAdjustments() {
       const { error } = await supabase.rpc("review_inventory_adjustment", {
         request_id_value: reviewTarget.id,
         approve_value: approve,
-        review_note_value: reviewNote || null,
+        review_note_value: reviewNote || undefined,
       });
       if (error) throw error;
     },
