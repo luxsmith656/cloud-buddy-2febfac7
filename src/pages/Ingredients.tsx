@@ -17,7 +17,7 @@ type Ingredient = Tables<"ingredients">;
 type Supplier = Tables<"suppliers">;
 
 const NO_SUPPLIER = "none";
-const emptyForm = { name: "", barcode: "", unit: "kg", current_stock: 0, min_stock: 0, supplier_id: NO_SUPPLIER, expiration_date: "" };
+const emptyForm = { name: "", barcode: "", unit: "kg", current_stock: 0, min_stock: 0, unit_cost: 0, supplier_id: NO_SUPPLIER, expiration_date: "" };
 
 const Ingredients = () => {
   const [search, setSearch] = useState("");
@@ -88,7 +88,7 @@ const Ingredients = () => {
 
   const openEdit = (i: Ingredient) => {
     setEditing(i);
-    setForm({ name: i.name, barcode: i.barcode || "", unit: i.unit, current_stock: i.current_stock, min_stock: i.min_stock, supplier_id: i.supplier_id || NO_SUPPLIER, expiration_date: i.expiration_date || "" });
+    setForm({ name: i.name, barcode: i.barcode || "", unit: i.unit, current_stock: i.current_stock, min_stock: i.min_stock, unit_cost: i.unit_cost, supplier_id: i.supplier_id || NO_SUPPLIER, expiration_date: i.expiration_date || "" });
     setModalOpen(true);
   };
 
@@ -99,7 +99,7 @@ const Ingredients = () => {
     if (!form.name.trim()) { toast.error("Name is required"); return; }
     const payload: any = {
       name: form.name.trim(), barcode: form.barcode.trim() || null, unit: form.unit, current_stock: form.current_stock,
-      min_stock: form.min_stock, supplier_id: form.supplier_id === NO_SUPPLIER ? null : form.supplier_id,
+      min_stock: form.min_stock, unit_cost: form.unit_cost, supplier_id: form.supplier_id === NO_SUPPLIER ? null : form.supplier_id,
       expiration_date: form.expiration_date || null,
     };
     if (editing) payload.id = editing.id;
@@ -137,7 +137,7 @@ const Ingredients = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  {["Name", "Barcode", "Unit", "Current Stock", "Min Stock", "Supplier", "Expiration", "Status", "Actions"].map(h => (
+                  {["Name", "Barcode", "Unit", "Current Stock", "Min Stock", "Unit Cost", "Supplier", "Expiration", "Status", "Actions"].map(h => (
                     <th key={h} className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -153,6 +153,7 @@ const Ingredients = () => {
                       <td className="p-4 text-sm text-muted-foreground">{i.unit}</td>
                       <td className="p-4 text-sm font-medium text-foreground">{i.current_stock}</td>
                       <td className="p-4 text-sm text-muted-foreground">{i.min_stock}</td>
+                      <td className="p-4 text-sm text-muted-foreground">{i.unit_cost ? i.unit_cost.toLocaleString(undefined, { style: "currency", currency: "PHP" }) : "-"}</td>
                       <td className="p-4 text-sm text-muted-foreground">{supplier?.name || "-"}</td>
                       <td className="p-4 text-sm text-muted-foreground">{i.expiration_date || "-"}</td>
                       <td className="p-4">
@@ -204,6 +205,10 @@ const Ingredients = () => {
               <div className="space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Min Stock</Label>
                 <Input type="number" min="0" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: Math.max(0, Number(e.target.value)) })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Unit Cost</Label>
+                <Input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: Math.max(0, Number(e.target.value)) })} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Supplier</Label>

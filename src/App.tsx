@@ -14,9 +14,12 @@ const Ingredients = lazy(() => import("./pages/Ingredients"));
 const Suppliers = lazy(() => import("./pages/Suppliers"));
 const Recipes = lazy(() => import("./pages/Recipes"));
 const BatchProduction = lazy(() => import("./pages/BatchProduction"));
+const Receiving = lazy(() => import("./pages/Receiving"));
+const Dispatch = lazy(() => import("./pages/Dispatch"));
 const Defects = lazy(() => import("./pages/Defects"));
 const StockMovements = lazy(() => import("./pages/StockMovements"));
 const InventoryAdjustments = lazy(() => import("./pages/InventoryAdjustments"));
+const InventoryActivity = lazy(() => import("./pages/InventoryActivity"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const Reports = lazy(() => import("./pages/Reports"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
@@ -51,9 +54,12 @@ function AppRoutes() {
         <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
         <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
         <Route path="/batches" element={<ProtectedRoute><BatchProduction /></ProtectedRoute>} />
+        <Route path="/receiving" element={<ProtectedRoute><Receiving /></ProtectedRoute>} />
+        <Route path="/dispatch" element={<ProtectedRoute><Dispatch /></ProtectedRoute>} />
         <Route path="/defects" element={<ProtectedRoute><Defects /></ProtectedRoute>} />
         <Route path="/stock-movements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
         <Route path="/adjustments" element={<ProtectedRoute><InventoryAdjustments /></ProtectedRoute>} />
+        <Route path="/activity" element={<ProtectedRoute><InventoryActivity /></ProtectedRoute>} />
         <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />

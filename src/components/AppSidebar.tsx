@@ -2,6 +2,7 @@ import {
   LayoutDashboard, Package, Leaf, Truck, BookOpen,
   Factory, AlertTriangle, ArrowLeftRight, Bell, BarChart3,
   ClipboardList, LogOut, ShieldAlert, ClipboardCheck, UserCog,
+  PackagePlus, PackageMinus, History,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -19,9 +20,12 @@ const navItems = [
   { title: "Suppliers", url: "/suppliers", icon: Truck },
   { title: "Recipes", url: "/recipes", icon: BookOpen },
   { title: "Batch Production", url: "/batches", icon: Factory },
+  { title: "Receiving", url: "/receiving", icon: PackagePlus },
+  { title: "Dispatch", url: "/dispatch", icon: PackageMinus },
   { title: "Defects", url: "/defects", icon: ShieldAlert },
   { title: "Stock In/Out", url: "/stock-movements", icon: ArrowLeftRight },
   { title: "Adjustments", url: "/adjustments", icon: ClipboardCheck },
+  { title: "Activity", url: "/activity", icon: History },
   { title: "Alerts", url: "/alerts", icon: Bell },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Audit Logs", url: "/audit-logs", icon: ClipboardList },

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Download, Package, Leaf, AlertTriangle, FileText } from "lucide-react";
+import { BarChart3, Download, Package, Leaf, AlertTriangle, FileText, PackagePlus, PackageMinus } from "lucide-react";
 import { toast } from "sonner";
 import { escapeHtml, isWithinDateRange, rowsToCsv, type ReportRow } from "@/lib/reports";
 import { computeProductStatus } from "@/lib/inventory";
@@ -75,16 +75,24 @@ const Reports = () => {
     queryKey: ["defects"],
     queryFn: async () => { const { data } = await supabase.from("defects").select("*, batches(*, products(name))").order("created_at", { ascending: false }); return data || []; },
   });
+  const { data: receipts = [] } = useQuery({
+    queryKey: ["ingredient_receipts"],
+    queryFn: async () => { const { data } = await supabase.from("ingredient_receipts").select("*, ingredients(name, unit), suppliers(name)").order("created_at", { ascending: false }); return data || []; },
+  });
+  const { data: dispatches = [] } = useQuery({
+    queryKey: ["product_dispatches"],
+    queryFn: async () => { const { data } = await supabase.from("product_dispatches").select("*, products(name, variant)").order("created_at", { ascending: false }); return data || []; },
+  });
 
-  const filterByDate = <T extends { created_at?: string | null; production_date?: string | null }>(items: T[]) => {
+  const filterByDate = <T extends { created_at?: string | null; production_date?: string | null; received_date?: string | null; dispatched_date?: string | null }>(items: T[]) => {
     if (!dateFrom && !dateTo) return items;
-    return items.filter(i => isWithinDateRange(i.created_at || i.production_date, dateFrom, dateTo));
+    return items.filter(i => isWithinDateRange(i.created_at || i.production_date || i.received_date || i.dispatched_date, dateFrom, dateTo));
   };
 
   const generateInventory = (format: "csv" | "pdf") => {
     const rows = [
-      ...products.map(p => ({ Type: "Product", Name: p.name, Barcode: p.barcode || "-", Variant: p.variant || "-", Stock: p.quantity, "Min Stock": p.min_stock, Unit: "units", Status: computeProductStatus(p.quantity, p.min_stock, p.expiration_date), Expiration: p.expiration_date || "-" })),
-      ...ingredients.map(i => ({ Type: "Ingredient", Name: i.name, Barcode: i.barcode || "-", Variant: "-", Stock: i.current_stock, "Min Stock": i.min_stock, Unit: i.unit, Status: i.current_stock <= i.min_stock ? "low-stock" : "ok", Expiration: i.expiration_date || "-" })),
+      ...products.map(p => ({ Type: "Product", Name: p.name, Barcode: p.barcode || "-", Variant: p.variant || "-", Stock: p.quantity, "Min Stock": p.min_stock, Unit: "units", "Unit Price": p.unit_price, "Est. Unit Cost": p.estimated_unit_cost, Status: computeProductStatus(p.quantity, p.min_stock, p.expiration_date), Expiration: p.expiration_date || "-" })),
+      ...ingredients.map(i => ({ Type: "Ingredient", Name: i.name, Barcode: i.barcode || "-", Variant: "-", Stock: i.current_stock, "Min Stock": i.min_stock, Unit: i.unit, "Unit Price": "-", "Est. Unit Cost": i.unit_cost, Status: i.current_stock <= i.min_stock ? "low-stock" : "ok", Expiration: i.expiration_date || "-" })),
     ];
     if (format === "csv") downloadCSV(rows, "inventory_summary.csv");
     else downloadPDF("Inventory Summary Report", rows);
@@ -121,9 +129,45 @@ const Reports = () => {
     else downloadPDF("Defect/Wastage Report", rows);
   };
 
+  const generateReceivingReport = (format: "csv" | "pdf") => {
+    const filtered = filterByDate(receipts);
+    const rows = filtered.map((receipt: any) => ({
+      Ingredient: receipt.ingredients?.name || "-",
+      Quantity: receipt.quantity,
+      Unit: receipt.ingredients?.unit || "-",
+      Supplier: receipt.suppliers?.name || "-",
+      Lot: receipt.lot_number || "-",
+      Invoice: receipt.invoice_number || "-",
+      "Unit Cost": receipt.unit_cost || 0,
+      "Total Cost": receipt.total_cost || 0,
+      Received: receipt.received_date,
+      Expiration: receipt.expiration_date || "-",
+    }));
+    if (format === "csv") downloadCSV(rows, "ingredient_receiving.csv");
+    else downloadPDF("Ingredient Receiving Report", rows);
+  };
+
+  const generateDispatchReport = (format: "csv" | "pdf") => {
+    const filtered = filterByDate(dispatches);
+    const rows = filtered.map((dispatch: any) => ({
+      Product: `${dispatch.products?.name || "-"}${dispatch.products?.variant ? ` (${dispatch.products.variant})` : ""}`,
+      Quantity: dispatch.quantity,
+      Type: dispatch.dispatch_type,
+      Destination: dispatch.destination || "-",
+      Reference: dispatch.reference_number || "-",
+      "Unit Price": dispatch.unit_price || 0,
+      "Total Value": dispatch.total_value || 0,
+      Dispatched: dispatch.dispatched_date,
+    }));
+    if (format === "csv") downloadCSV(rows, "product_dispatches.csv");
+    else downloadPDF("Product Dispatch Report", rows);
+  };
+
   const reportTypes = [
     { title: "Inventory Summary", desc: "Current stock levels for all products and ingredients", icon: Package, gen: generateInventory },
     { title: "Batch Production Report", desc: "Production history with quantities and dates", icon: BarChart3, gen: generateBatchReport },
+    { title: "Ingredient Receiving Report", desc: "Inbound stock receipts with supplier, lot, invoice, and cost", icon: PackagePlus, gen: generateReceivingReport },
+    { title: "Product Dispatch Report", desc: "Outbound finished goods with destination, reference, and sales value", icon: PackageMinus, gen: generateDispatchReport },
     { title: "Ingredient Usage Report", desc: "Raw material consumption over time", icon: Leaf, gen: generateIngredientUsage },
     { title: "Defect/Wastage Report", desc: "Analysis of defective items and waste trends", icon: AlertTriangle, gen: generateDefectReport },
   ];

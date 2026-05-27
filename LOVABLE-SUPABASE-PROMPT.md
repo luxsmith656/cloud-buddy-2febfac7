@@ -15,6 +15,7 @@ Apply all SQL migration files in order from the repo:
 4. supabase/migrations/20260527120000_harden_inventory_transactions.sql
 5. supabase/migrations/20260527133000_operations_hardening.sql
 6. supabase/migrations/20260527150000_grant_has_role_execute.sql
+7. supabase/migrations/20260527170000_real_life_inventory_flows.sql
 
 Important requirements:
 - Preserve existing data.
@@ -25,6 +26,10 @@ Important requirements:
 - Add set_user_role RPC for admin role management.
 - Add refresh_inventory_alerts RPC.
 - Grant authenticated users EXECUTE access on has_role(uuid, app_role), because the frontend and policies need this helper to resolve admin/user access.
+- Add ingredient_receipts, product_dispatches, and inventory_activity tables.
+- Add unit_cost to ingredients and unit_price/estimated_unit_cost to products.
+- Add receive_ingredient RPC so inbound ingredient stock, receipt history, stock movement, activity history, and audit log are committed atomically.
+- Add dispatch_product RPC so outbound product stock, optional batch deduction, dispatch history, stock movement, activity history, alert creation, and audit log are committed atomically.
 - Keep audit_logs immutable with the new trigger.
 - Keep batch production and defect logging atomic through produce_batch and log_defect.
 - Harden the images storage bucket: public read, admin-only upload/update/delete, PNG/JPG/WEBP only, 5 MB limit.
@@ -47,6 +52,9 @@ Then test these workflows:
 - User can request a stock adjustment.
 - Admin can approve/reject adjustment.
 - Approved adjustment creates a stock movement and updates product/ingredient stock atomically.
+- Admin can receive an ingredient; stock increases, a receipt is recorded, stock movement is created, and the activity page shows the receipt.
+- Admin can dispatch a product; stock decreases, optional batch quantity decreases, dispatch history is recorded, stock movement is created, and the activity page shows the dispatch.
+- Reports export inventory, receiving, dispatch, batch, usage, and defect data safely to CSV/PDF.
 - Batch production works through produce_batch.
 - Defect logging works through log_defect.
 - Image upload rejects SVG and accepts PNG/JPG/WEBP.

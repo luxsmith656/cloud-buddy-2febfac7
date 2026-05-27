@@ -1,6 +1,6 @@
 # Cloud Buddy
 
-Cloud Buddy is a React, Vite, TypeScript, Tailwind, shadcn/ui, and Supabase inventory management app for products, ingredients, recipes, batch production, defects, stock movements, alerts, reports, and audit logs.
+Cloud Buddy is a React, Vite, TypeScript, Tailwind, shadcn/ui, and Supabase inventory management app for products, ingredients, suppliers, recipes, ingredient receiving, batch production, product dispatch, defects, stock movements, adjustment approvals, alerts, reports, activity history, roles, and audit logs.
 
 ## Prerequisites
 
@@ -59,6 +59,15 @@ The operations hardening migration adds:
 
 The role helper grant migration allows signed-in clients to call `has_role(uuid, app_role)`, which the frontend uses to resolve admin access and which RLS/storage policies rely on.
 
+The real-life inventory flow migration adds:
+
+- `receive_ingredient` RPC for atomic inbound stock receiving.
+- `dispatch_product` RPC for atomic outbound finished-goods dispatch.
+- `ingredient_receipts`, `product_dispatches`, and `inventory_activity` tables.
+- Unit cost fields for ingredients and unit price/estimated cost fields for products.
+- Receiving and dispatch reports for CSV/PDF export.
+- RLS policies so authenticated users can read operational history and only admins can create protected inventory transactions.
+
 If you use Lovable for Supabase changes, paste the prompt in `LOVABLE-SUPABASE-PROMPT.md`.
 
 ## Admin Account Setup
@@ -96,4 +105,5 @@ All of these should pass before deployment.
 ## Known Limitations
 
 - Broader end-to-end tests for authenticated CRUD flows still need a seeded Supabase test project.
-- Broader import workflows, backup automation, external monitoring, scheduled alert jobs, email/SMS notifications, and barcode scanner hardware testing are recommended next improvements.
+- Batch-level FEFO allocation is now possible through dispatch batch selection, but automatic FEFO picking is still a recommended improvement.
+- Broader import workflows, backup automation, external monitoring, scheduled alert jobs, email/SMS notifications, barcode scanner hardware testing, and approval workflows for high-value dispatches are recommended next improvements.

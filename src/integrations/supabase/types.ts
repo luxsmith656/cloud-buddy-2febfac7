@@ -163,6 +163,7 @@ export type Database = {
           min_stock: number
           name: string
           supplier_id: string | null
+          unit_cost: number
           unit: string
           updated_at: string
         }
@@ -175,6 +176,7 @@ export type Database = {
           min_stock?: number
           name: string
           supplier_id?: string | null
+          unit_cost?: number
           unit?: string
           updated_at?: string
         }
@@ -187,6 +189,7 @@ export type Database = {
           min_stock?: number
           name?: string
           supplier_id?: string | null
+          unit_cost?: number
           unit?: string
           updated_at?: string
         }
@@ -199,6 +202,109 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ingredient_receipts: {
+        Row: {
+          created_at: string
+          expiration_date: string | null
+          id: string
+          ingredient_id: string
+          invoice_number: string | null
+          lot_number: string | null
+          notes: string | null
+          quantity: number
+          received_by: string | null
+          received_date: string
+          supplier_id: string | null
+          total_cost: number
+          unit_cost: number | null
+        }
+        Insert: {
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          ingredient_id: string
+          invoice_number?: string | null
+          lot_number?: string | null
+          notes?: string | null
+          quantity: number
+          received_by?: string | null
+          received_date?: string
+          supplier_id?: string | null
+          unit_cost?: number | null
+        }
+        Update: {
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          ingredient_id?: string
+          invoice_number?: string | null
+          lot_number?: string | null
+          notes?: string | null
+          quantity?: number
+          received_by?: string | null
+          received_date?: string
+          supplier_id?: string | null
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_receipts_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_receipts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_activity: {
+        Row: {
+          activity_type: string
+          created_at: string
+          details: string | null
+          id: string
+          item_id: string
+          item_name: string
+          item_type: Database["public"]["Enums"]["movement_item_type"]
+          quantity: number | null
+          reference_id: string | null
+          reference_table: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          item_id: string
+          item_name: string
+          item_type: Database["public"]["Enums"]["movement_item_type"]
+          quantity?: number | null
+          reference_id?: string | null
+          reference_table?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          item_id?: string
+          item_name?: string
+          item_type?: Database["public"]["Enums"]["movement_item_type"]
+          quantity?: number | null
+          reference_id?: string | null
+          reference_table?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       inventory_adjustment_requests: {
         Row: {
@@ -254,6 +360,7 @@ export type Database = {
           category: string
           created_at: string
           expiration_date: string | null
+          estimated_unit_cost: number
           id: string
           image_url: string | null
           min_stock: number
@@ -261,6 +368,7 @@ export type Database = {
           quantity: number
           shelf_life: number | null
           status: Database["public"]["Enums"]["product_status"]
+          unit_price: number
           updated_at: string
           variant: string | null
         }
@@ -269,6 +377,7 @@ export type Database = {
           category?: string
           created_at?: string
           expiration_date?: string | null
+          estimated_unit_cost?: number
           id?: string
           image_url?: string | null
           min_stock?: number
@@ -276,6 +385,7 @@ export type Database = {
           quantity?: number
           shelf_life?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          unit_price?: number
           updated_at?: string
           variant?: string | null
         }
@@ -284,6 +394,7 @@ export type Database = {
           category?: string
           created_at?: string
           expiration_date?: string | null
+          estimated_unit_cost?: number
           id?: string
           image_url?: string | null
           min_stock?: number
@@ -291,10 +402,72 @@ export type Database = {
           quantity?: number
           shelf_life?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          unit_price?: number
           updated_at?: string
           variant?: string | null
         }
         Relationships: []
+      }
+      product_dispatches: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          destination: string | null
+          dispatch_type: string
+          dispatched_by: string | null
+          dispatched_date: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reference_number: string | null
+          total_value: number
+          unit_price: number | null
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          destination?: string | null
+          dispatch_type?: string
+          dispatched_by?: string | null
+          dispatched_date?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reference_number?: string | null
+          unit_price?: number | null
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          destination?: string | null
+          dispatch_type?: string
+          dispatched_by?: string | null
+          dispatched_date?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reference_number?: string | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_dispatches_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_dispatches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -503,6 +676,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      dispatch_product: {
+        Args: {
+          batch_id_value?: string | null
+          destination_value?: string | null
+          dispatch_type_value?: string
+          dispatched_date_value?: string | null
+          notes_value?: string | null
+          product_id_value: string
+          quantity_value: number
+          reference_number_value?: string | null
+          unit_price_value?: number | null
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -520,6 +707,20 @@ export type Database = {
       }
       produce_batch: {
         Args: { product_id_value: string; quantity_value: number }
+        Returns: string
+      }
+      receive_ingredient: {
+        Args: {
+          expiration_date_value?: string | null
+          ingredient_id_value: string
+          invoice_number_value?: string | null
+          lot_number_value?: string | null
+          notes_value?: string | null
+          quantity_value: number
+          received_date_value?: string | null
+          supplier_id_value?: string | null
+          unit_cost_value?: number | null
+        }
         Returns: string
       }
       refresh_inventory_alerts: { Args: never; Returns: undefined }
