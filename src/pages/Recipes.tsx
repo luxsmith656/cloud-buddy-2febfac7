@@ -66,16 +66,14 @@ const Recipes = () => {
     mutationFn: async () => {
       if (!selectedProduct) throw new Error("Select a product");
       if (!recipeIngredients.length) throw new Error("Add at least one ingredient");
-
-      if (editingId) {
-        await supabase.from("recipes").update({ name: recipeName || null, product_id: selectedProduct, image_url: recipeImage || null }).eq("id", editingId);
-        await supabase.from("recipe_ingredients").delete().eq("recipe_id", editingId);
-        await supabase.from("recipe_ingredients").insert(recipeIngredients.map(ri => ({ recipe_id: editingId, ingredient_id: ri.ingredient_id, quantity: ri.quantity })));
-      } else {
-        const { data: recipe, error } = await supabase.from("recipes").insert({ name: recipeName || null, product_id: selectedProduct, image_url: recipeImage || null }).select().single();
-        if (error) throw error;
-        await supabase.from("recipe_ingredients").insert(recipeIngredients.map(ri => ({ recipe_id: recipe.id, ingredient_id: ri.ingredient_id, quantity: ri.quantity })));
-      }
+      const { error } = await supabase.rpc("save_recipe", {
+        recipe_id_value: editingId as any,
+        product_id_value: selectedProduct,
+        name_value: recipeName,
+        image_url_value: recipeImage,
+        ingredients_value: recipeIngredients as any,
+      });
+      if (error) throw error;
     },
     onSuccess: (_, __, context) => {
       queryClient.invalidateQueries({ queryKey: ["recipes-full"] });

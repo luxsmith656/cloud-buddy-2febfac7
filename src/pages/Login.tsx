@@ -18,6 +18,8 @@ const Login = () => {
   const { login, signup } = useAuth();
   const navigate = useNavigate();
 
+  const demoLoginEnabled = import.meta.env.VITE_ENABLE_DEMO_LOGIN === "true";
+
   const quickLogin = async (demoEmail: string, demoPassword: string) => {
     setError("");
     setEmail(demoEmail);
@@ -121,7 +123,7 @@ const Login = () => {
             </Button>
           </form>
 
-          {!isSignUp && (
+          {!isSignUp && demoLoginEnabled && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />

@@ -540,6 +540,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_recipe: {
+        Args: {
+          image_url_value: string
+          ingredients_value: Json
+          name_value: string
+          product_id_value: string
+          recipe_id_value: string
+        }
+        Returns: string
+      }
       set_user_role: {
         Args: {
           enabled_value: boolean
