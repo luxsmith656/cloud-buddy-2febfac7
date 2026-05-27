@@ -200,54 +200,6 @@ export type Database = {
           },
         ]
       }
-      products: {
-        Row: {
-          barcode: string | null
-          category: string
-          created_at: string
-          expiration_date: string | null
-          id: string
-          image_url: string | null
-          min_stock: number
-          name: string
-          quantity: number
-          shelf_life: number | null
-          status: Database["public"]["Enums"]["product_status"]
-          updated_at: string
-          variant: string | null
-        }
-        Insert: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          expiration_date?: string | null
-          id?: string
-          image_url?: string | null
-          min_stock?: number
-          name: string
-          quantity?: number
-          shelf_life?: number | null
-          status?: Database["public"]["Enums"]["product_status"]
-          updated_at?: string
-          variant?: string | null
-        }
-        Update: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          expiration_date?: string | null
-          id?: string
-          image_url?: string | null
-          min_stock?: number
-          name?: string
-          quantity?: number
-          shelf_life?: number | null
-          status?: Database["public"]["Enums"]["product_status"]
-          updated_at?: string
-          variant?: string | null
-        }
-        Relationships: []
-      }
       inventory_adjustment_requests: {
         Row: {
           created_at: string
@@ -293,6 +245,54 @@ export type Database = {
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["adjustment_status"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          expiration_date: string | null
+          id: string
+          image_url: string | null
+          min_stock: number
+          name: string
+          quantity: number
+          shelf_life: number | null
+          status: Database["public"]["Enums"]["product_status"]
+          updated_at: string
+          variant: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          image_url?: string | null
+          min_stock?: number
+          name: string
+          quantity?: number
+          shelf_life?: number | null
+          status?: Database["public"]["Enums"]["product_status"]
+          updated_at?: string
+          variant?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          image_url?: string | null
+          min_stock?: number
+          name?: string
+          quantity?: number
+          shelf_life?: number | null
+          status?: Database["public"]["Enums"]["product_status"]
+          updated_at?: string
+          variant?: string | null
         }
         Relationships: []
       }
@@ -488,7 +488,7 @@ export type Database = {
     Functions: {
       compute_product_status: {
         Args: {
-          expiration_value: string | null
+          expiration_value: string
           min_stock_value: number
           quantity_value: number
         }
@@ -497,14 +497,10 @@ export type Database = {
       create_inventory_alert: {
         Args: {
           alert_type_value: Database["public"]["Enums"]["alert_type"]
-          item_name_value: string | null
+          item_name_value: string
           message_value: string
           urgent_value?: boolean
         }
-        Returns: undefined
-      }
-      refresh_inventory_alerts: {
-        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       has_role: {
@@ -518,10 +514,15 @@ export type Database = {
         Args: {
           batch_id_value: string
           quantity_value: number
-          reason_value?: string | null
+          reason_value?: string
         }
         Returns: string
       }
+      produce_batch: {
+        Args: { product_id_value: string; quantity_value: number }
+        Returns: string
+      }
+      refresh_inventory_alerts: { Args: never; Returns: undefined }
       request_inventory_adjustment: {
         Args: {
           item_id_value: string
@@ -535,16 +536,9 @@ export type Database = {
         Args: {
           approve_value: boolean
           request_id_value: string
-          review_note_value?: string | null
+          review_note_value?: string
         }
         Returns: undefined
-      }
-      produce_batch: {
-        Args: {
-          product_id_value: string
-          quantity_value: number
-        }
-        Returns: string
       }
       set_user_role: {
         Args: {
@@ -688,7 +682,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-      public: {
+  public: {
     Enums: {
       adjustment_status: ["pending", "approved", "rejected"],
       alert_type: ["low-stock", "expiring", "critical"],

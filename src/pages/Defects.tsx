@@ -43,7 +43,7 @@ const Defects = () => {
       const { error } = await supabase.rpc("log_defect", {
         batch_id_value: batchId,
         quantity_value: quantity,
-        reason_value: reason || null,
+        reason_value: reason || undefined,
       });
       if (error) throw error;
     },
