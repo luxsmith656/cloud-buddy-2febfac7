@@ -67,7 +67,7 @@ const Recipes = () => {
       if (!selectedProduct) throw new Error("Select a product");
       if (!recipeIngredients.length) throw new Error("Add at least one ingredient");
       const { error } = await supabase.rpc("save_recipe", {
-        recipe_id_value: editingId,
+        recipe_id_value: editingId as any,
         product_id_value: selectedProduct,
         name_value: recipeName,
         image_url_value: recipeImage,
