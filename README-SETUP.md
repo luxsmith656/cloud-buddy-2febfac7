@@ -1,27 +1,19 @@
-# Batch Buddy Backend Test Setup
+# Cloud Buddy Setup Notes
 
-## 1. Supabase (Lovable)
-- Paste SQL seeds from previous message.
-- Get URL/anon key from dashboard → paste into .env.local
+Use `README.md` as the primary setup guide.
 
-## 2. Run App (PowerShell blocks npm – use CMD or VSCode Terminal)
-**CMD:**
-```
-cd /d c:\Users\User\Downloads\ellaine\batch-buddy
-npm install
+Quick start:
+
+```bash
+npm ci
+cp .env.example .env.local
 npm run dev
 ```
 
-**PowerShell Fix:**
-```
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-npm install
-npm run dev
-```
+Important:
 
-## 3. Test
-- Login (signup first).
-- Check dashboard queries/alerts.
-- CRUD products/ingredients/stock.
-
-Backend 100% good!
+- Use npm only.
+- Apply every Supabase migration before testing production workflows.
+- Create a Supabase Auth user, then insert an `admin` row into `public.user_roles`.
+- Rotate the previously committed Supabase anon/JWT credentials before production use.
+- Run `npm run lint`, `npm run typecheck`, `npm test`, `npm audit --audit-level=moderate`, and `npm run build` before deployment.

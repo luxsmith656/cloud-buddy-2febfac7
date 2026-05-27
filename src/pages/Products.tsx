@@ -14,6 +14,7 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { logAuditAction } from "@/lib/audit";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadCompressedImage, ACCEPT_ATTR } from "@/lib/imageUpload";
+import { computeProductStatus } from "@/lib/inventory";
 
 type Product = Tables<"products">;
 
@@ -31,8 +32,7 @@ const statusLabels: Record<string, string> = {
   "out-of-stock": "OUT OF STOCK",
 };
 
-type ProductStatus = "in-stock" | "low-stock" | "expiring" | "out-of-stock";
-const emptyForm = { name: "", category: "Produce", variant: "", shelf_life: 365, quantity: 0, min_stock: 10, status: "in-stock" as ProductStatus, expiration_date: "", image_url: "" };
+const emptyForm = { name: "", barcode: "", category: "Produce", variant: "", shelf_life: 365, quantity: 0, min_stock: 10, expiration_date: "", image_url: "" };
 
 const Products = () => {
   const [search, setSearch] = useState("");
@@ -42,7 +42,6 @@ const Products = () => {
   const [form, setForm] = useState(emptyForm);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [selectedBatches, setSelectedBatches] = useState<Record<string, string>>({});
   const [hoveredBatch, setHoveredBatch] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -123,8 +122,8 @@ const Products = () => {
   const openEdit = (p: Product) => {
     setEditingProduct(p);
     setForm({
-      name: p.name, category: p.category, variant: p.variant || "", shelf_life: p.shelf_life || 365,
-      quantity: p.quantity, min_stock: p.min_stock, status: p.status, expiration_date: p.expiration_date || "",
+      name: p.name, barcode: p.barcode || "", category: p.category, variant: p.variant || "", shelf_life: p.shelf_life || 365,
+      quantity: p.quantity, min_stock: p.min_stock, expiration_date: p.expiration_date || "",
       image_url: p.image_url || "",
     });
     setModalOpen(true);
@@ -140,9 +139,9 @@ const Products = () => {
     e.preventDefault();
     if (!form.name.trim()) { toast.error("Name is required"); return; }
     const payload: any = {
-      name: form.name.trim(), category: form.category, variant: form.variant || null,
+      name: form.name.trim(), barcode: form.barcode.trim() || null, category: form.category, variant: form.variant || null,
       shelf_life: form.shelf_life, quantity: form.quantity, min_stock: form.min_stock,
-      status: form.status, expiration_date: form.expiration_date || null,
+      expiration_date: form.expiration_date || null,
       image_url: form.image_url || null,
     };
     if (editingProduct) payload.id = editingProduct.id;
@@ -151,16 +150,17 @@ const Products = () => {
 
   const categories = [...new Set(products.map(p => p.category))];
   const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const normalizedSearch = search.toLowerCase();
+    const matchSearch = p.name.toLowerCase().includes(normalizedSearch) || (p.barcode || "").toLowerCase().includes(normalizedSearch);
     const matchCat = category === "all" || p.category === category;
     return matchSearch && matchCat;
   });
 
   const stats = [
     { label: "TOTAL PRODUCTS", value: products.length.toLocaleString(), sub: "" },
-    { label: "OUT OF STOCK", value: String(products.filter(p => p.status === "out-of-stock").length), sub: "Critical", subColor: "text-destructive" },
-    { label: "EXPIRING SOON", value: String(products.filter(p => p.status === "expiring").length), sub: "< 7 Days" },
-    { label: "STOCK HEALTH", value: products.length ? `${((products.filter(p => p.status === "in-stock").length / products.length) * 100).toFixed(1)}%` : "N/A", sub: "" },
+    { label: "OUT OF STOCK", value: String(products.filter(p => computeProductStatus(p.quantity, p.min_stock, p.expiration_date) === "out-of-stock").length), sub: "Critical", subColor: "text-destructive" },
+    { label: "EXPIRING SOON", value: String(products.filter(p => computeProductStatus(p.quantity, p.min_stock, p.expiration_date) === "expiring").length), sub: "< 7 Days" },
+    { label: "STOCK HEALTH", value: products.length ? `${((products.filter(p => computeProductStatus(p.quantity, p.min_stock, p.expiration_date) === "in-stock").length / products.length) * 100).toFixed(1)}%` : "N/A", sub: "" },
   ];
 
   return (
@@ -216,6 +216,7 @@ const Products = () => {
                   <tr className="border-b border-border">
                     <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Image</th>
                     <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product Name</th>
+                    <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Barcode</th>
                     <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Batch</th>
                     <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</th>
                     <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quantity</th>
@@ -232,6 +233,7 @@ const Products = () => {
                     const displayBatch = hoveredBatchId ? productBatches.find((b: any) => b.id === hoveredBatchId) : null;
                     const displayQuantity = displayBatch ? displayBatch.quantity_produced : p.quantity;
                     const displayExpiration = displayBatch ? displayBatch.expiration_date : p.expiration_date;
+                    const computedStatus = computeProductStatus(displayQuantity, p.min_stock, displayExpiration);
                     return (
                       <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                         <td className="p-4">
@@ -246,6 +248,7 @@ const Products = () => {
                         <td className="p-4">
                           <p className="text-sm font-medium text-foreground">{p.name} {p.variant ? `(${p.variant})` : ""}</p>
                         </td>
+                        <td className="p-4 text-sm text-muted-foreground">{p.barcode || "-"}</td>
                         <td className="p-4">
                           {productBatches && productBatches.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
@@ -275,9 +278,9 @@ const Products = () => {
                         <td className="p-4 text-sm font-medium text-foreground">{displayQuantity} Units</td>
                         <td className="p-4 text-sm text-muted-foreground">{displayExpiration ? new Date(displayExpiration).toLocaleDateString() : "-"}</td>
                         <td className="p-4">
-                          <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${statusStyles[p.status]}`}>
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${statusStyles[computedStatus]}`}>
                             <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {statusLabels[p.status]}
+                            {statusLabels[computedStatus]}
                           </span>
                         </td>
                         <td className="p-4">
@@ -309,6 +312,10 @@ const Products = () => {
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Product name" />
               </div>
               <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Barcode</Label>
+                <Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="SKU or barcode" />
+              </div>
+              <div className="space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Category</Label>
                 <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Produce" />
               </div>
@@ -327,18 +334,6 @@ const Products = () => {
               <div className="space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Min Stock</Label>
                 <Input type="number" min="0" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: Math.max(0, Number(e.target.value)) })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Status</Label>
-                <Select value={form.status} onValueChange={(v: any) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in-stock">In Stock</SelectItem>
-                    <SelectItem value="low-stock">Low Stock</SelectItem>
-                    <SelectItem value="expiring">Expiring</SelectItem>
-                    <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Expiration Date</Label>

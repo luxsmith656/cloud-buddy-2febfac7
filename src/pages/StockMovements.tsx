@@ -44,46 +44,28 @@ const StockMovements = () => {
   });
 
   const items = itemType === "ingredient" ? ingredients : products;
-  const getItemName = () => {
-    const item = items.find((i: any) => i.id === itemId);
-    return item?.name || "";
-  };
-
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!itemId) throw new Error("Select an item");
       if (qty <= 0) throw new Error("Quantity must be positive");
-      const name = getItemName();
       const actualQty = moveType === "OUT" ? -qty : qty;
 
-      const { error } = await supabase.from("stock_movements").insert({
-        type: moveType, item_type: itemType, item_id: itemId,
-        item_name: name, quantity: actualQty, remarks: remarks || null,
+      const { error } = await supabase.rpc("request_inventory_adjustment", {
+        item_type_value: itemType,
+        item_id_value: itemId,
+        quantity_value: actualQty,
+        reason_value: remarks || `${moveType} adjustment request`,
       });
       if (error) throw error;
-
-      // Update stock
-      if (itemType === "ingredient") {
-        const ing = ingredients.find(i => i.id === itemId);
-        if (ing) {
-          const newStock = Math.max(0, ing.current_stock + actualQty);
-          await supabase.from("ingredients").update({ current_stock: newStock }).eq("id", itemId);
-        }
-      } else {
-        const prod = products.find(p => p.id === itemId);
-        if (prod) {
-          const newQty = Math.max(0, prod.quantity + actualQty);
-          await supabase.from("products").update({ quantity: newQty }).eq("id", itemId);
-        }
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock_movements"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_adjustment_requests"] });
       queryClient.invalidateQueries({ queryKey: ["ingredients"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       setModalOpen(false);
       setItemId(""); setQty(1); setRemarks("");
-      toast.success("Stock movement recorded");
+      toast.success("Adjustment request submitted for approval");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -95,7 +77,7 @@ const StockMovements = () => {
           <h1 className="font-heading text-3xl font-bold text-foreground">Stock Movements</h1>
           <p className="text-muted-foreground mt-1">Complete ledger of all inventory transactions.</p>
         </div>
-        <Button onClick={() => setModalOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"><Plus className="h-4 w-4" /> New Movement</Button>
+        <Button onClick={() => setModalOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"><Plus className="h-4 w-4" /> Request Adjustment</Button>
       </div>
       <Card>
         <CardContent className="p-0 overflow-x-auto">
@@ -134,10 +116,10 @@ const StockMovements = () => {
         </CardContent>
       </Card>
 
-      {/* Manual Stock Movement Modal */}
+      {/* Adjustment Request Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle className="font-heading">Record Stock Movement</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-heading">Request Stock Adjustment</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -176,14 +158,14 @@ const StockMovements = () => {
               <Input type="number" min="1" value={qty} onChange={e => setQty(Math.max(1, Number(e.target.value)))} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Remarks</Label>
-              <Textarea value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Optional notes..." rows={2} />
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Reason *</Label>
+                <Textarea value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Explain why this stock change is needed..." rows={2} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="bg-primary text-primary-foreground">
-              {createMutation.isPending ? "Saving..." : "Record Movement"}
+              {createMutation.isPending ? "Saving..." : "Submit Request"}
             </Button>
           </DialogFooter>
         </DialogContent>

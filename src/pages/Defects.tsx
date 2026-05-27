@@ -40,35 +40,12 @@ const Defects = () => {
     mutationFn: async () => {
       if (!batchId) throw new Error("Select a batch");
       if (quantity < 1) throw new Error("Quantity must be at least 1");
-      // Get current batch
-      const { data: batch, error: fetchError } = await supabase.from("batches").select("quantity_produced, product_id").eq("id", batchId).single();
-      if (fetchError) throw fetchError;
-      if (!batch) throw new Error("Batch not found");
-      const newBatchQuantity = Math.max(0, batch.quantity_produced - quantity);
-      // Get product
-      const { data: product, error: productError } = await supabase.from("products").select("quantity, name").eq("id", batch.product_id).single();
-      if (productError) throw productError;
-      if (!product) throw new Error("Product not found");
-      const newProductQuantity = Math.max(0, product.quantity - quantity);
-      // Insert the defect
-      const { error: defectError } = await supabase.from("defects").insert({ batch_id: batchId, quantity, reason: reason || null });
-      if (defectError) throw defectError;
-      // Update the batch to deduct the defective quantity from produced
-      const { error: batchError } = await supabase.from("batches").update({ quantity_produced: newBatchQuantity }).eq("id", batchId);
-      if (batchError) throw batchError;
-      // Update the product to deduct the defective quantity from stock
-      const { error: productUpdateError } = await supabase.from("products").update({ quantity: newProductQuantity }).eq("id", batch.product_id);
-      if (productUpdateError) throw productUpdateError;
-      // Log stock movement for defective product out
-      const { error: stockError } = await supabase.from("stock_movements").insert({
-        type: "OUT",
-        item_type: "product",
-        item_id: batch.product_id,
-        item_name: product.name,
-        quantity: -quantity,
-        remarks: `Defect logged: ${reason || 'No reason'}`,
+      const { error } = await supabase.rpc("log_defect", {
+        batch_id_value: batchId,
+        quantity_value: quantity,
+        reason_value: reason || null,
       });
-      if (stockError) throw stockError;
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["defects"] });

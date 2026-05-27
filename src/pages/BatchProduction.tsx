@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle, ArrowRight, Factory } from "lucide-react";
-import type { Tables } from "@/integrations/supabase/types";
 
 const batchStatusStyles: Record<string, string> = {
   planned: "bg-info/10 text-info border-info/20",
@@ -53,15 +51,6 @@ const BatchProduction = () => {
     },
   });
 
-  const { data: ingredients = [] } = useQuery({
-    queryKey: ["ingredients"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("ingredients").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const getProduct = (id: string) => products.find(p => p.id === id);
 
   // Step 2: Pre-flight check
@@ -88,63 +77,15 @@ const BatchProduction = () => {
 
   const allSufficient = ingredientCheck.every(i => i.sufficient);
 
-  // Step 3: Create batch and deduct ingredients
+  // Step 3: Create batch and deduct ingredients atomically in the database.
   const createBatchMutation = useMutation({
     mutationFn: async () => {
-      const product = getProduct(selectedProduct);
-      if (!product) throw new Error("Product not found");
-
-      // Calculate expiration date based on shelf life
-      const prodDate = new Date();
-      const expDate = new Date(prodDate);
-      expDate.setDate(expDate.getDate() + (product.shelf_life || 365));
-
-      // Create batch
-      const { data: batch, error: batchError } = await supabase.from("batches").insert({
-        product_id: selectedProduct,
-        quantity_planned: quantity,
-        quantity_produced: quantity,
-        production_date: prodDate.toISOString().split("T")[0],
-        expiration_date: expDate.toISOString().split("T")[0],
-        status: "completed",
-      }).select().single();
-      if (batchError) throw batchError;
-
-      // Deduct ingredients
-      const recipe = recipes.find((r: any) => r.product_id === selectedProduct);
-      if (recipe) {
-        for (const ri of (recipe as any).recipe_ingredients) {
-          const required = ri.quantity * quantity;
-          const newStock = Math.max(0, (ri.ingredients?.current_stock || 0) - required);
-          await supabase.from("ingredients").update({ current_stock: newStock }).eq("id", ri.ingredient_id);
-
-          // Log stock movement
-          await supabase.from("stock_movements").insert({
-            type: "OUT",
-            item_type: "ingredient",
-            item_id: ri.ingredient_id,
-            item_name: ri.ingredients?.name || "",
-            quantity: -required,
-            remarks: `Used in batch for ${product.name}`,
-          });
-        }
-      }
-
-      // Add produced quantity to product stock
-      await supabase.from("products").update({
-        quantity: product.quantity + quantity,
-        status: "in-stock",
-      }).eq("id", selectedProduct);
-
-      // Log product stock in
-      await supabase.from("stock_movements").insert({
-        type: "IN",
-        item_type: "product",
-        item_id: selectedProduct,
-        item_name: product.name,
-        quantity: quantity,
-        remarks: `Batch production completed`,
+      if (!selectedProduct) throw new Error("Select a product");
+      const { error } = await supabase.rpc("produce_batch", {
+        product_id_value: selectedProduct,
+        quantity_value: quantity,
       });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["batches"] });

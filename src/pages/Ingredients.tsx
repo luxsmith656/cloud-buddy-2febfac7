@@ -16,7 +16,8 @@ import { useAuth } from "@/contexts/AuthContext";
 type Ingredient = Tables<"ingredients">;
 type Supplier = Tables<"suppliers">;
 
-const emptyForm = { name: "", unit: "kg", current_stock: 0, min_stock: 0, supplier_id: "", expiration_date: "" };
+const NO_SUPPLIER = "none";
+const emptyForm = { name: "", barcode: "", unit: "kg", current_stock: 0, min_stock: 0, supplier_id: NO_SUPPLIER, expiration_date: "" };
 
 const Ingredients = () => {
   const [search, setSearch] = useState("");
@@ -87,7 +88,7 @@ const Ingredients = () => {
 
   const openEdit = (i: Ingredient) => {
     setEditing(i);
-    setForm({ name: i.name, unit: i.unit, current_stock: i.current_stock, min_stock: i.min_stock, supplier_id: i.supplier_id || "", expiration_date: i.expiration_date || "" });
+    setForm({ name: i.name, barcode: i.barcode || "", unit: i.unit, current_stock: i.current_stock, min_stock: i.min_stock, supplier_id: i.supplier_id || NO_SUPPLIER, expiration_date: i.expiration_date || "" });
     setModalOpen(true);
   };
 
@@ -97,15 +98,18 @@ const Ingredients = () => {
     e.preventDefault();
     if (!form.name.trim()) { toast.error("Name is required"); return; }
     const payload: any = {
-      name: form.name.trim(), unit: form.unit, current_stock: form.current_stock,
-      min_stock: form.min_stock, supplier_id: form.supplier_id || null,
+      name: form.name.trim(), barcode: form.barcode.trim() || null, unit: form.unit, current_stock: form.current_stock,
+      min_stock: form.min_stock, supplier_id: form.supplier_id === NO_SUPPLIER ? null : form.supplier_id,
       expiration_date: form.expiration_date || null,
     };
     if (editing) payload.id = editing.id;
     upsertMutation.mutate(payload);
   };
 
-  const filtered = ingredients.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = ingredients.filter(i => {
+    const normalizedSearch = search.toLowerCase();
+    return i.name.toLowerCase().includes(normalizedSearch) || (i.barcode || "").toLowerCase().includes(normalizedSearch);
+  });
   const getSupplier = (id: string | null) => suppliers.find(s => s.id === id);
 
   return (
@@ -133,7 +137,7 @@ const Ingredients = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  {["Name", "Unit", "Current Stock", "Min Stock", "Supplier", "Expiration", "Status", "Actions"].map(h => (
+                  {["Name", "Barcode", "Unit", "Current Stock", "Min Stock", "Supplier", "Expiration", "Status", "Actions"].map(h => (
                     <th key={h} className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -145,6 +149,7 @@ const Ingredients = () => {
                   return (
                     <tr key={i.id} className={`border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${isLow ? "bg-destructive/5" : ""}`}>
                       <td className="p-4 text-sm font-medium text-foreground">{i.name}</td>
+                      <td className="p-4 text-sm text-muted-foreground">{i.barcode || "-"}</td>
                       <td className="p-4 text-sm text-muted-foreground">{i.unit}</td>
                       <td className="p-4 text-sm font-medium text-foreground">{i.current_stock}</td>
                       <td className="p-4 text-sm text-muted-foreground">{i.min_stock}</td>
@@ -180,6 +185,10 @@ const Ingredients = () => {
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Barcode</Label>
+                <Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="SKU or barcode" />
+              </div>
+              <div className="space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Unit</Label>
                 <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -201,7 +210,7 @@ const Ingredients = () => {
                 <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value={NO_SUPPLIER}>None</SelectItem>
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>

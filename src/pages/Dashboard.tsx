@@ -1,18 +1,10 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, AlertTriangle, Clock, TrendingUp, ArrowDown, ArrowUp } from "lucide-react";
+import { Package, AlertTriangle, Clock, ArrowDown, ArrowUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-const chartData = [
-  { day: "MON", stockIn: 120, stockOut: 80 },
-  { day: "TUE", stockIn: 150, stockOut: 100 },
-  { day: "WED", stockIn: 200, stockOut: 180 },
-  { day: "THU", stockIn: 280, stockOut: 220 },
-  { day: "FRI", stockIn: 350, stockOut: 300 },
-  { day: "SAT", stockIn: 420, stockOut: 280 },
-  { day: "SUN", stockIn: 380, stockOut: 350 },
-];
+import { buildWeeklyMovementTrend, computeProductStatus } from "@/lib/inventory";
 
 const Dashboard = () => {
   const { data: products = [] } = useQuery({
@@ -29,12 +21,25 @@ const Dashboard = () => {
   });
   const { data: movements = [] } = useQuery({
     queryKey: ["stock_movements"],
-    queryFn: async () => { const { data } = await supabase.from("stock_movements").select("*").order("created_at", { ascending: false }).limit(5); return data || []; },
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 6);
+      since.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("stock_movements")
+        .select("*")
+        .gte("created_at", since.toISOString())
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
   });
 
-  const lowStockCount = ingredients.filter(i => i.current_stock <= i.min_stock).length + products.filter(p => p.status === "low-stock" || p.status === "out-of-stock").length;
-  const expiringCount = products.filter(p => p.status === "expiring").length;
+  const productStatuses = products.map(p => computeProductStatus(p.quantity, p.min_stock, p.expiration_date));
+  const lowStockCount = ingredients.filter(i => i.current_stock <= i.min_stock).length + productStatuses.filter(status => status === "low-stock" || status === "out-of-stock").length;
+  const expiringCount = productStatuses.filter(status => status === "expiring").length;
   const totalStock = products.reduce((sum, p) => sum + p.quantity, 0);
+  const chartData = useMemo(() => buildWeeklyMovementTrend(movements), [movements]);
+  const recentMovements = movements.slice(0, 5);
 
   const statCards = [
     { title: "TOTAL PRODUCTS", value: products.length.toLocaleString(), sub: "", icon: Package },
@@ -94,7 +99,7 @@ const Dashboard = () => {
           <CardContent className="space-y-4">
             {movements.length === 0 ? (
               <p className="text-sm text-muted-foreground">No recent activity.</p>
-            ) : movements.map((m) => (
+            ) : recentMovements.map((m) => (
               <div key={m.id} className="flex items-start gap-3">
                 <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
                   m.type === "IN" ? "bg-success/10 text-success" : m.type === "OUT" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"

@@ -5,23 +5,23 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/webp",
-  "image/gif",
-  "image/bmp",
-  "image/svg+xml",
 ];
 
 export const ACCEPT_ATTR = ACCEPTED_IMAGE_TYPES.join(",");
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_DIMENSION = 1280;
 const QUALITY = 0.7;
 
-/** Compress raster images to webp; passthrough gif/svg. */
+/** Validate and compress safe raster images to webp. */
 export async function compressImage(file: File): Promise<File> {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-    throw new Error("Unsupported file type. Use PNG, JPG, WEBP, GIF, BMP or SVG.");
+    throw new Error("Unsupported file type. Use PNG, JPG, or WEBP.");
   }
-  // Skip compression for animated/vector formats
-  if (file.type === "image/gif" || file.type === "image/svg+xml") return file;
+
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error("Image must be 5 MB or smaller.");
+  }
 
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) return file;

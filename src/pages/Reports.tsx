@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BarChart3, Download, Package, Leaf, AlertTriangle, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { escapeHtml, isWithinDateRange, rowsToCsv, type ReportRow } from "@/lib/reports";
+import { computeProductStatus } from "@/lib/inventory";
 
-const downloadCSV = (rows: Record<string, any>[], filename: string) => {
+const downloadCSV = (rows: ReportRow[], filename: string) => {
   if (!rows.length) { toast.error("No data to export"); return; }
-  const headers = Object.keys(rows[0]);
-  const csv = [headers.join(","), ...rows.map(r => headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
+  const blob = new Blob([rowsToCsv(rows)], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
@@ -20,30 +20,14 @@ const downloadCSV = (rows: Record<string, any>[], filename: string) => {
   toast.success(`${filename} downloaded`);
 };
 
-const downloadPDF = (title: string, rows: Record<string, any>[]) => {
+const downloadPDF = (title: string, rows: ReportRow[]) => {
   if (!rows.length) { toast.error("No data to export"); return; }
   const headers = Object.keys(rows[0]);
-  const colWidth = 150;
-  const rowHeight = 20;
-  const margin = 40;
-  const pageWidth = margin * 2 + headers.length * colWidth;
-  const pageHeight = margin * 2 + (rows.length + 2) * rowHeight + 40;
 
-  let content = `%PDF-1.4\n`;
-  // Simple text-based PDF generation
-  const lines: string[] = [];
-  lines.push(title);
-  lines.push(`Generated: ${new Date().toLocaleString()}`);
-  lines.push("");
-  lines.push(headers.join(" | "));
-  lines.push(headers.map(() => "---").join(" | "));
-  rows.forEach(r => lines.push(headers.map(h => String(r[h] ?? "-")).join(" | ")));
-
-  // Use HTML-to-print approach for better formatting
   const printWindow = window.open("", "_blank");
   if (!printWindow) { toast.error("Please allow popups to download PDF"); return; }
   printWindow.document.write(`
-    <html><head><title>${title}</title>
+    <html><head><title>${escapeHtml(title)}</title>
     <style>
       body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
       h1 { font-size: 20px; margin-bottom: 4px; }
@@ -54,11 +38,11 @@ const downloadPDF = (title: string, rows: Record<string, any>[]) => {
       tr:nth-child(even) { background: #faf8f5; }
       @media print { body { padding: 20px; } }
     </style></head><body>
-    <h1>${title}</h1>
-    <p class="date">Generated: ${new Date().toLocaleString()}</p>
+    <h1>${escapeHtml(title)}</h1>
+    <p class="date">Generated: ${escapeHtml(new Date().toLocaleString())}</p>
     <table>
-      <thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map(r => `<tr>${headers.map(h => `<td>${r[h] ?? "-"}</td>`).join("")}</tr>`).join("")}</tbody>
+      <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(r => `<tr>${headers.map(h => `<td>${escapeHtml(r[h] ?? "-")}</td>`).join("")}</tr>`).join("")}</tbody>
     </table>
     </body></html>
   `);
@@ -92,22 +76,18 @@ const Reports = () => {
     queryFn: async () => { const { data } = await supabase.from("defects").select("*, batches(*, products(name))").order("created_at", { ascending: false }); return data || []; },
   });
 
-  const filterByDate = (items: any[]) => {
+  const filterByDate = <T extends { created_at?: string | null; production_date?: string | null }>(items: T[]) => {
     if (!dateFrom && !dateTo) return items;
-    return items.filter(i => {
-      const d = new Date(i.created_at || i.production_date);
-      if (dateFrom && d < new Date(dateFrom)) return false;
-      if (dateTo && d > new Date(dateTo + "T23:59:59")) return false;
-      return true;
-    });
+    return items.filter(i => isWithinDateRange(i.created_at || i.production_date, dateFrom, dateTo));
   };
 
   const generateInventory = (format: "csv" | "pdf") => {
     const rows = [
-      ...products.map(p => ({ Type: "Product", Name: p.name, Variant: p.variant || "-", Stock: p.quantity, "Min Stock": p.min_stock, Unit: "units", Status: p.status, Expiration: p.expiration_date || "-" })),
-      ...ingredients.map(i => ({ Type: "Ingredient", Name: i.name, Variant: "-", Stock: i.current_stock, "Min Stock": i.min_stock, Unit: i.unit, Status: i.current_stock <= i.min_stock ? "low-stock" : "ok", Expiration: i.expiration_date || "-" })),
+      ...products.map(p => ({ Type: "Product", Name: p.name, Barcode: p.barcode || "-", Variant: p.variant || "-", Stock: p.quantity, "Min Stock": p.min_stock, Unit: "units", Status: computeProductStatus(p.quantity, p.min_stock, p.expiration_date), Expiration: p.expiration_date || "-" })),
+      ...ingredients.map(i => ({ Type: "Ingredient", Name: i.name, Barcode: i.barcode || "-", Variant: "-", Stock: i.current_stock, "Min Stock": i.min_stock, Unit: i.unit, Status: i.current_stock <= i.min_stock ? "low-stock" : "ok", Expiration: i.expiration_date || "-" })),
     ];
-    format === "csv" ? downloadCSV(rows, "inventory_summary.csv") : downloadPDF("Inventory Summary Report", rows);
+    if (format === "csv") downloadCSV(rows, "inventory_summary.csv");
+    else downloadPDF("Inventory Summary Report", rows);
   };
 
   const generateBatchReport = (format: "csv" | "pdf") => {
@@ -117,7 +97,8 @@ const Reports = () => {
       Planned: b.quantity_planned, Produced: b.quantity_produced, Status: b.status,
       "Production Date": b.production_date, "Expiration Date": b.expiration_date || "-",
     }));
-    format === "csv" ? downloadCSV(rows, "batch_production.csv") : downloadPDF("Batch Production Report", rows);
+    if (format === "csv") downloadCSV(rows, "batch_production.csv");
+    else downloadPDF("Batch Production Report", rows);
   };
 
   const generateIngredientUsage = (format: "csv" | "pdf") => {
@@ -126,7 +107,8 @@ const Reports = () => {
     filtered.forEach((m: any) => { usage[m.item_name] = (usage[m.item_name] || 0) + Math.abs(m.quantity); });
     const rows = Object.entries(usage).map(([name, qty]) => ({ Ingredient: name, "Total Used": qty }));
     if (!rows.length) { toast.error("No ingredient usage data for this period"); return; }
-    format === "csv" ? downloadCSV(rows, "ingredient_usage.csv") : downloadPDF("Ingredient Usage Report", rows);
+    if (format === "csv") downloadCSV(rows, "ingredient_usage.csv");
+    else downloadPDF("Ingredient Usage Report", rows);
   };
 
   const generateDefectReport = (format: "csv" | "pdf") => {
@@ -135,7 +117,8 @@ const Reports = () => {
       Product: d.batches?.products?.name || "-", "Batch ID": d.batch_id.slice(0, 8),
       "Qty Defective": d.quantity, Reason: d.reason || "-", Date: new Date(d.created_at).toLocaleDateString(),
     }));
-    format === "csv" ? downloadCSV(rows, "defect_wastage.csv") : downloadPDF("Defect/Wastage Report", rows);
+    if (format === "csv") downloadCSV(rows, "defect_wastage.csv");
+    else downloadPDF("Defect/Wastage Report", rows);
   };
 
   const reportTypes = [

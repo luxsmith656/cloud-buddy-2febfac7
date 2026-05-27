@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -5,25 +6,32 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import Ingredients from "./pages/Ingredients";
-import Suppliers from "./pages/Suppliers";
-import Recipes from "./pages/Recipes";
-import BatchProduction from "./pages/BatchProduction";
-import Defects from "./pages/Defects";
-import StockMovements from "./pages/StockMovements";
-import Alerts from "./pages/Alerts";
-import Reports from "./pages/Reports";
-import AuditLogs from "./pages/AuditLogs";
-import NotFound from "./pages/NotFound";
+
+const Login = lazy(() => import("./pages/Login"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Products = lazy(() => import("./pages/Products"));
+const Ingredients = lazy(() => import("./pages/Ingredients"));
+const Suppliers = lazy(() => import("./pages/Suppliers"));
+const Recipes = lazy(() => import("./pages/Recipes"));
+const BatchProduction = lazy(() => import("./pages/BatchProduction"));
+const Defects = lazy(() => import("./pages/Defects"));
+const StockMovements = lazy(() => import("./pages/StockMovements"));
+const InventoryAdjustments = lazy(() => import("./pages/InventoryAdjustments"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const Reports = lazy(() => import("./pages/Reports"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const RoleManagement = lazy(() => import("./pages/RoleManagement"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+function LoadingScreen() {
+  return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
+  if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <AppLayout>{children}</AppLayout>;
 }
@@ -31,24 +39,28 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading...</p></div>;
+  if (isLoading) return <LoadingScreen />;
 
   return (
-    <Routes>
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-      <Route path="/ingredients" element={<ProtectedRoute><Ingredients /></ProtectedRoute>} />
-      <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
-      <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
-      <Route path="/batches" element={<ProtectedRoute><BatchProduction /></ProtectedRoute>} />
-      <Route path="/defects" element={<ProtectedRoute><Defects /></ProtectedRoute>} />
-      <Route path="/stock-movements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
-      <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
-      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-      <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+        <Route path="/ingredients" element={<ProtectedRoute><Ingredients /></ProtectedRoute>} />
+        <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
+        <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
+        <Route path="/batches" element={<ProtectedRoute><BatchProduction /></ProtectedRoute>} />
+        <Route path="/defects" element={<ProtectedRoute><Defects /></ProtectedRoute>} />
+        <Route path="/stock-movements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
+        <Route path="/adjustments" element={<ProtectedRoute><InventoryAdjustments /></ProtectedRoute>} />
+        <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
+        <Route path="/roles" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 
