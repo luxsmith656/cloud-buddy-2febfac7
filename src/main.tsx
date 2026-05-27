@@ -1,9 +1,9 @@
 // Cloud Buddy — Inventory Management System
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { hasSupabaseConfig } from "./integrations/supabase/config";
 
 const root = createRoot(document.getElementById("root")!);
-const hasSupabaseConfig = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
 if (!hasSupabaseConfig) {
   root.render(

@@ -28,6 +28,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
 
 Never commit `.env`, `.env.local`, service-role keys, JWT secrets, or database URLs. A real Supabase anon key was previously committed, so rotate the exposed anon key/JWT secret in Supabase before treating the project as production-safe.
 
+The browser publishable Supabase key is not a service-role secret and is included in frontend builds. This repo includes a deployment fallback for the current Vercel/Lovable project so the app does not render blank if Vercel env vars are missing. Still prefer setting `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel/Lovable deployment settings.
+
 ## Supabase Setup
 
 Apply migrations in order from `supabase/migrations`:
