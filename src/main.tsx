@@ -1,4 +1,4 @@
-// Cloud Buddy — Inventory Management System
+// Cloud Buddy - Inventory Management System
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { hasSupabaseConfig } from "./integrations/supabase/config";

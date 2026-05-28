@@ -22,9 +22,9 @@ export default defineConfig(({ mode }) => ({
       devOptions: { enabled: false },
       includeAssets: ["favicon.ico", "elline-logo.png", "apple-touch-icon.png", "robots.txt"],
       manifest: {
-        name: "Cloud Buddy — Elline Food Products",
+        name: "Cloud Buddy - Inventory Management",
         short_name: "Cloud Buddy",
-        description: "Inventory management for Elline Food Products. Works offline.",
+        description: "Inventory management, barcode scanning, batch tracking, and read-only offline lookup.",
         theme_color: "#0f172a",
         background_color: "#0f172a",
         display: "standalone",

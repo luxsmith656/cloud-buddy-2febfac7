@@ -20,6 +20,8 @@ Apply all SQL migration files in order from the repo:
 9. supabase/migrations/20260527170000_real_life_inventory_flows.sql
 10. supabase/migrations/20260528100000_batch_barcode_system.sql
 11. supabase/migrations/20260528101000_label_seed_data.sql
+12. supabase/migrations/20260528104146_0015b4b9-737b-45b5-9954-6f7964aa0321.sql
+13. supabase/migrations/20260603090000_security_pwa_hardening.sql
 
 Important requirements:
 - Preserve existing data.
@@ -54,6 +56,8 @@ Important requirements:
 - Add Tomato Sauce, Spaghetti Sauce, Hot Sauce, and Oyster Sauce as estimated placeholder products and editable demo recipes only. Do not treat their demo quantities as confirmed formulas.
 - Harden the images storage bucket: public read, admin-only upload/update/delete, PNG/JPG/WEBP only, 5 MB limit.
 - Add the admin profile read policy so admins can see user profiles in the Role Management page.
+- Revoke anonymous EXECUTE access from has_role(uuid, app_role). Only authenticated users should call role helpers.
+- Reconfirm the images bucket rejects SVG/GIF/BMP and only accepts PNG/JPG/WEBP up to 5 MB.
 
 After applying migrations:
 - Confirm RLS is enabled on all app tables.
@@ -81,6 +85,7 @@ Then test these workflows:
 - Expiration date is editable and required during batch creation, and the exact entered date is saved.
 - Duplicate batch barcodes are rejected.
 - Barcode Scanner can find a batch by token and shows product, category, manufactured date, expiration, shelf life, price/SRP, produced quantity, remaining stock, status, defect status, and recent stock movements.
+- Barcode Scanner can sync batch barcode data while online and resolve synced batch tokens offline in read-only mode.
 - Barcode Printing can filter batches and print compact A4 labels with Code 128 barcode tokens.
 - Defect logging works through log_defect.
 - Recipe create/edit works through save_recipe and does not leave partial recipe ingredient rows.

@@ -17,6 +17,10 @@ dist-ssr
 coverage
 .vite
 *.tsbuildinfo
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
 
 # Editor directories and files
 .vscode/*

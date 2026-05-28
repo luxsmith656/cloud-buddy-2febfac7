@@ -28,7 +28,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
 
 Never commit `.env`, `.env.local`, service-role keys, JWT secrets, or database URLs. A real Supabase anon key was previously committed, so rotate the exposed anon key/JWT secret in Supabase before treating the project as production-safe.
 
-The browser publishable Supabase key is not a service-role secret and is included in frontend builds. This repo includes a deployment fallback for the current Vercel/Lovable project so the app does not render blank if Vercel env vars are missing. Still prefer setting `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel/Lovable deployment settings.
+The browser publishable Supabase key is not a service-role secret and is included in frontend builds, but it still must be provided through `.env.local`, Vercel, or Lovable environment variables. The app intentionally shows a configuration-required screen when those variables are missing.
 
 ## Supabase Setup
 
@@ -82,6 +82,17 @@ The label seed migration adds label-informed products, ingredients, and editable
 - Label-readable ingredients are used for Fish Sauce, Soy Sauce, Vinegar, Sweet Sauce, and Banana Ketchup.
 - Tomato Sauce, Spaghetti Sauce, Hot Sauce, and Oyster Sauce are added as estimated placeholders because label photos were not available.
 - Recipe quantities in seed data are demo placeholders only and should be reviewed by an admin before real production use.
+
+The PWA/security hardening migration adds:
+
+- Revocation of anonymous `has_role` execute access.
+- Reconfirmation that storage image uploads are limited to PNG, JPG, and WEBP at 5 MB.
+
+## PWA And Offline
+
+Cloud Buddy is configured as a PWA through `vite-plugin-pwa`, with app icons, a web manifest, service-worker precaching, stale chunk recovery after deploys, and a status bar for offline/update states.
+
+Offline support is intentionally read-only for inventory safety. The barcode scanner syncs batch lookup records into IndexedDB while online, supports manual sync, refreshes on reconnect, and can resolve synced batch tokens offline. Stock-changing actions such as production, receiving, dispatch, defects, and adjustments still require Supabase so inventory transactions stay atomic and conflict-free.
 
 If you use Lovable for Supabase changes, paste the prompt in `LOVABLE-SUPABASE-PROMPT.md`.
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Camera, Search, StopCircle } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Camera, RefreshCw, Search, StopCircle } from "lucide-react";
 import { toast } from "sonner";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { normalizeBarcodeToken } from "@/lib/barcode";
-import { cacheBatch, getCachedBatch } from "@/lib/offlineCache";
+import { cacheBatch, cacheBatches, getCachedBatch, getMeta } from "@/lib/offlineCache";
 
 type ScanStatus = "ready" | "scanning" | "found" | "not-found" | "expired" | "near-expiry" | "defective" | "no-camera-permission";
 
@@ -38,6 +38,27 @@ const getBatchStatus = (batch: any): ScanStatus => {
   return "found";
 };
 
+const mapBatchForCache = (batch: any) => {
+  const defects = Array.isArray(batch.defects) ? batch.defects : [];
+  return {
+    batch_id: batch.id,
+    batch_code: batch.batch_code,
+    barcode_token: batch.barcode_token,
+    product_id: batch.product_id,
+    product_name: batch.products?.name || "Unknown product",
+    category: batch.products?.category || "-",
+    variant: batch.products?.variant || null,
+    manufactured_date: batch.manufactured_date || batch.production_date,
+    expiration_date: batch.expiration_date,
+    shelf_life: batch.products?.shelf_life ?? null,
+    price: batch.price ?? batch.products?.unit_price ?? 0,
+    quantity_produced: batch.quantity_planned,
+    remaining_quantity: batch.quantity_produced,
+    status: batch.status,
+    defect_quantity: defects.reduce((sum: number, defect: any) => sum + Number(defect.quantity || 0), 0),
+  };
+};
+
 const BarcodeScanner = () => {
   const [manualCode, setManualCode] = useState("");
   const [status, setStatus] = useState<ScanStatus>("ready");
@@ -50,6 +71,33 @@ const BarcodeScanner = () => {
   const [cachedAt, setCachedAt] = useState<number | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string | undefined>(undefined);
+  const [lastSync, setLastSync] = useState<number | null>(null);
+
+  const syncQuery = useQuery({
+    queryKey: ["barcode-offline-sync"],
+    enabled: typeof navigator === "undefined" ? false : navigator.onLine,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("batches")
+        .select("*, products(name, category, variant, shelf_life, unit_price), defects(quantity)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const rows = (data || []).flatMap((batch: any) => {
+        const cachedBatch = mapBatchForCache(batch);
+        const tokens = [batch.batch_code, batch.barcode_token, batch.barcode_value]
+          .map((token) => normalizeBarcodeToken(token || ""))
+          .filter(Boolean);
+        return Array.from(new Set(tokens)).map((token) => ({ token, batch: cachedBatch }));
+      });
+
+      await cacheBatches(rows);
+      const syncedAt = Date.now();
+      setLastSync(syncedAt);
+      return { count: data?.length || 0, syncedAt };
+    },
+  });
 
   const lookupMutation = useMutation({
     mutationFn: async (code: string) => {
@@ -165,6 +213,20 @@ const BarcodeScanner = () => {
     controlsRef.current = null;
   }, []);
 
+  useEffect(() => {
+    getMeta<number>("batches:lastSync").then((value) => {
+      if (value) setLastSync(value);
+    });
+  }, []);
+
+  useEffect(() => {
+    const syncOnReconnect = () => {
+      void syncQuery.refetch();
+    };
+    window.addEventListener("online", syncOnReconnect);
+    return () => window.removeEventListener("online", syncOnReconnect);
+  }, [syncQuery]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -206,9 +268,18 @@ const BarcodeScanner = () => {
               <Button onClick={() => lookupMutation.mutate(manualCode)} variant="outline" className="gap-2"><Search className="h-4 w-4" /> Search</Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Tip: USB and Bluetooth scanners work too — just focus the input and scan.
+              Tip: USB and Bluetooth scanners work too - just focus the input and scan.
               {fromCache && cachedAt && <> Last synced {new Date(cachedAt).toLocaleString()}.</>}
             </p>
+            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-3 text-[11px] text-muted-foreground">
+              <span>
+                Offline barcode cache:{" "}
+                {syncQuery.isFetching ? "syncing..." : lastSync ? `synced ${new Date(lastSync).toLocaleString()}` : "not synced yet"}
+              </span>
+              <Button size="sm" variant="outline" className="ml-auto h-7 gap-1" onClick={() => syncQuery.refetch()} disabled={syncQuery.isFetching}>
+                <RefreshCw className="h-3.5 w-3.5" /> Sync
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
