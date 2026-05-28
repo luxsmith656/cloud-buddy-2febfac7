@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { PwaStatusBar } from "@/components/PwaStatusBar";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -49,6 +50,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
+          <PwaStatusBar />
           <header className="h-16 flex items-center justify-between border-b border-border px-4 bg-card shrink-0">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground" />

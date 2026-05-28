@@ -2,6 +2,7 @@
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { hasSupabaseConfig } from "./integrations/supabase/config";
+import { initPwa } from "./lib/pwa";
 
 const root = createRoot(document.getElementById("root")!);
 
@@ -20,5 +21,6 @@ if (!hasSupabaseConfig) {
 } else {
   import("./App.tsx").then(({ default: App }) => {
     root.render(<App />);
+    initPwa();
   });
 }
