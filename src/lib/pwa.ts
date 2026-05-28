@@ -39,7 +39,7 @@ export function initPwa() {
       onNeedRefresh() { emit("updated"); },
       onOfflineReady() { emit("offline-ready"); },
       onRegistered() { emit("ready"); },
-      onRegisterError(err) { console.warn("[pwa] register error", err); },
+      onRegisterError(err: unknown) { console.warn("[pwa] register error", err); },
     });
   } catch (err) {
     console.warn("[pwa] init failed", err);
