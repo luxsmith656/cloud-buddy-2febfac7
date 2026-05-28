@@ -81,7 +81,7 @@ const Reports = () => {
   });
   const { data: dispatches = [] } = useQuery({
     queryKey: ["product_dispatches"],
-    queryFn: async () => { const { data } = await supabase.from("product_dispatches").select("*, products(name, variant)").order("created_at", { ascending: false }); return data || []; },
+    queryFn: async () => { const { data } = await supabase.from("product_dispatches").select("*, products(name, variant), batches(batch_code)").order("created_at", { ascending: false }); return data || []; },
   });
 
   const filterByDate = <T extends { created_at?: string | null; production_date?: string | null; received_date?: string | null; dispatched_date?: string | null }>(items: T[]) => {
@@ -101,9 +101,9 @@ const Reports = () => {
   const generateBatchReport = (format: "csv" | "pdf") => {
     const filtered = filterByDate(batches);
     const rows = filtered.map((b: any) => ({
-      "Batch ID": b.id.slice(0, 8), Product: b.products?.name || "-", Variant: b.products?.variant || "-",
-      Planned: b.quantity_planned, Produced: b.quantity_produced, Status: b.status,
-      "Production Date": b.production_date, "Expiration Date": b.expiration_date || "-",
+      "Batch Barcode": b.batch_code || b.id.slice(0, 8), Product: b.products?.name || "-", Variant: b.products?.variant || "-",
+      Planned: b.quantity_planned, Remaining: b.quantity_produced, Status: b.status,
+      "Manufactured Date": b.manufactured_date || b.production_date, "Expiration Date": b.expiration_date || "-", Price: b.price || 0,
     }));
     if (format === "csv") downloadCSV(rows, "batch_production.csv");
     else downloadPDF("Batch Production Report", rows);
@@ -122,7 +122,7 @@ const Reports = () => {
   const generateDefectReport = (format: "csv" | "pdf") => {
     const filtered = filterByDate(defects);
     const rows = filtered.map((d: any) => ({
-      Product: d.batches?.products?.name || "-", "Batch ID": d.batch_id.slice(0, 8),
+      Product: d.batches?.products?.name || "-", "Batch Barcode": d.batches?.batch_code || d.batch_id.slice(0, 8),
       "Qty Defective": d.quantity, Reason: d.reason || "-", Date: new Date(d.created_at).toLocaleDateString(),
     }));
     if (format === "csv") downloadCSV(rows, "defect_wastage.csv");
@@ -151,6 +151,7 @@ const Reports = () => {
     const filtered = filterByDate(dispatches);
     const rows = filtered.map((dispatch: any) => ({
       Product: `${dispatch.products?.name || "-"}${dispatch.products?.variant ? ` (${dispatch.products.variant})` : ""}`,
+      "Batch Barcode": dispatch.batches?.batch_code || "-",
       Quantity: dispatch.quantity,
       Type: dispatch.dispatch_type,
       Destination: dispatch.destination || "-",

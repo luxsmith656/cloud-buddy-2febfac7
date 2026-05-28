@@ -68,6 +68,21 @@ The real-life inventory flow migration adds:
 - Receiving and dispatch reports for CSV/PDF export.
 - RLS policies so authenticated users can read operational history and only admins can create protected inventory transactions.
 
+The batch barcode migration adds:
+
+- Required per-batch `batch_code`, `barcode_token`, `barcode_value`, `manufactured_date`, and batch `price`.
+- Unique indexes so the same batch barcode/token cannot be reused.
+- `produce_batch(product_id_value, quantity_value, expiration_date_value, batch_code_value, production_date_value)` so production date, editable expiration date, batch creation, ingredient deduction, finished-goods stock, stock movements, alerts, and audit log are committed atomically.
+- Barcode-aware `log_defect` and `dispatch_product` RPCs so defect and dispatch movements keep the related batch barcode.
+- `find_batch_by_barcode(barcode_value_value)` for the scanner page. The barcode stores only the internal token; product details are fetched from Supabase after authenticated lookup.
+- Shelf-life updates based on the readable bottle labels: Banana Ketchup and Sweet Sauce use 210 days; Soy Sauce, Vinegar, and Fish Sauce use 240 days.
+
+The label seed migration adds label-informed products, ingredients, and editable demo recipes:
+
+- Label-readable ingredients are used for Fish Sauce, Soy Sauce, Vinegar, Sweet Sauce, and Banana Ketchup.
+- Tomato Sauce, Spaghetti Sauce, Hot Sauce, and Oyster Sauce are added as estimated placeholders because label photos were not available.
+- Recipe quantities in seed data are demo placeholders only and should be reviewed by an admin before real production use.
+
 If you use Lovable for Supabase changes, paste the prompt in `LOVABLE-SUPABASE-PROMPT.md`.
 
 ## Admin Account Setup
@@ -102,8 +117,18 @@ All of these should pass before deployment.
 4. Run `npm ci`, `npm run build`, and deploy the generated `dist` folder.
 5. Confirm storage bucket policies and RLS policies in Supabase Dashboard.
 
+Only describe Cloud Buddy as fully deployed on Vercel after the live URL loads with valid Supabase variables:
+
+```bash
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
+```
+
+If the Vercel site still shows missing configuration or "configuration required," it is deployed but still needs final environment configuration and redeploy.
+
 ## Known Limitations
 
 - Broader end-to-end tests for authenticated CRUD flows still need a seeded Supabase test project.
-- Batch-level FEFO allocation is now possible through dispatch batch selection, but automatic FEFO picking is still a recommended improvement.
-- Broader import workflows, backup automation, external monitoring, scheduled alert jobs, email/SMS notifications, barcode scanner hardware testing, and approval workflows for high-value dispatches are recommended next improvements.
+- Camera scanning depends on browser support for the BarcodeDetector API. USB scanners and manual barcode search are supported as fallback paths.
+- Batch-level FEFO allocation is possible through dispatch batch selection, but automatic FEFO picking is still a recommended improvement.
+- Broader import/export workflows, backup automation, external monitoring, scheduled alert jobs, email/SMS notifications, barcode hardware testing, audit dashboards, and approval workflows for high-value dispatches are recommended next improvements.

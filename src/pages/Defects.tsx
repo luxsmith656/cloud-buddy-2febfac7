@@ -77,7 +77,7 @@ const Defects = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  {["Product", "Batch", "Qty Defective", "Reason", "Date"].map(h => (
+                  {["Product", "Batch Barcode", "Qty Defective", "Reason", "Date"].map(h => (
                     <th key={h} className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -86,7 +86,7 @@ const Defects = () => {
                 {defects.map((d: any) => (
                   <tr key={d.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="p-4 text-sm text-foreground">{d.batches?.products?.name || "-"}</td>
-                    <td className="p-4 text-sm font-medium text-foreground">{d.batch_id.slice(0, 8)}</td>
+                    <td className="p-4 text-sm font-medium text-foreground">{d.batches?.batch_code || d.batch_id.slice(0, 8)}</td>
                     <td className="p-4 text-sm text-destructive font-medium">{d.quantity}</td>
                     <td className="p-4 text-sm text-muted-foreground">{d.reason || "-"}</td>
                     <td className="p-4 text-sm text-muted-foreground">{new Date(d.created_at).toLocaleDateString()}</td>
@@ -110,7 +110,7 @@ const Defects = () => {
                 <SelectContent>
                   {batches.map((b: any) => (
                     <SelectItem key={b.id} value={b.id}>
-                      {b.products?.name || "Unknown"} — Batch {b.id.slice(0, 8)} ({b.quantity_produced} produced)
+                      {b.products?.name || "Unknown"} - {b.batch_code || b.id.slice(0, 8)} ({b.quantity_produced} remaining)
                     </SelectItem>
                   ))}
                 </SelectContent>

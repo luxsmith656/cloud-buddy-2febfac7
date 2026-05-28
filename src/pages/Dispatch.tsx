@@ -49,7 +49,7 @@ const Dispatch = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_dispatches")
-        .select("*, products(name, variant), batches(production_date, expiration_date)")
+        .select("*, products(name, variant), batches(batch_code, production_date, expiration_date)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -140,7 +140,7 @@ const Dispatch = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  {["Product", "Qty", "Type", "Destination", "Reference", "Unit Price", "Total", "Dispatched", "Batch"].map((header) => (
+                  {["Product", "Qty", "Type", "Destination", "Reference", "Unit Price", "Total", "Dispatched", "Batch Barcode"].map((header) => (
                     <th key={header} className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{header}</th>
                   ))}
                 </tr>
@@ -158,7 +158,7 @@ const Dispatch = () => {
                     <td className="p-4 text-sm text-muted-foreground">{dispatch.unit_price ? dispatch.unit_price.toLocaleString(undefined, { style: "currency", currency: "PHP" }) : "-"}</td>
                     <td className="p-4 text-sm font-medium text-foreground">{dispatch.total_value ? dispatch.total_value.toLocaleString(undefined, { style: "currency", currency: "PHP" }) : "-"}</td>
                     <td className="p-4 text-sm text-muted-foreground">{new Date(dispatch.dispatched_date).toLocaleDateString()}</td>
-                    <td className="p-4 text-sm text-muted-foreground">{dispatch.batch_id ? dispatch.batch_id.slice(0, 8) : "-"}</td>
+                    <td className="p-4 text-sm text-muted-foreground">{dispatch.batches?.batch_code || "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -190,7 +190,7 @@ const Dispatch = () => {
                   <SelectItem value={NO_BATCH}>No specific batch</SelectItem>
                   {productBatches.map((batch) => (
                     <SelectItem key={batch.id} value={batch.id}>
-                      {batch.production_date} - {batch.quantity_produced} units{batch.expiration_date ? `, exp ${batch.expiration_date}` : ""}
+                      {batch.batch_code} - {batch.quantity_produced} units{batch.expiration_date ? `, exp ${batch.expiration_date}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

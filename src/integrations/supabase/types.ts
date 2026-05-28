@@ -76,10 +76,15 @@ export type Database = {
       }
       batches: {
         Row: {
+          barcode_token: string
+          barcode_value: string
+          batch_code: string
           created_at: string
           created_by: string | null
           expiration_date: string | null
           id: string
+          manufactured_date: string
+          price: number
           product_id: string
           production_date: string
           quantity_planned: number
@@ -88,10 +93,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          barcode_token?: string
+          barcode_value?: string
+          batch_code?: string
           created_at?: string
           created_by?: string | null
           expiration_date?: string | null
           id?: string
+          manufactured_date?: string
+          price?: number
           product_id: string
           production_date?: string
           quantity_planned?: number
@@ -100,10 +110,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          barcode_token?: string
+          barcode_value?: string
+          batch_code?: string
           created_at?: string
           created_by?: string | null
           expiration_date?: string | null
           id?: string
+          manufactured_date?: string
+          price?: number
           product_id?: string
           production_date?: string
           quantity_planned?: number
@@ -572,6 +587,8 @@ export type Database = {
       }
       stock_movements: {
         Row: {
+          batch_code: string | null
+          batch_id: string | null
           created_at: string
           id: string
           item_id: string
@@ -583,6 +600,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          batch_code?: string | null
+          batch_id?: string | null
           created_at?: string
           id?: string
           item_id: string
@@ -594,6 +613,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          batch_code?: string | null
+          batch_id?: string | null
           created_at?: string
           id?: string
           item_id?: string
@@ -697,6 +718,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      find_batch_by_barcode: {
+        Args: { barcode_value_value: string }
+        Returns: {
+          batch_code: string
+          batch_id: string
+          barcode_token: string
+          category: string
+          defect_quantity: number
+          expiration_date: string
+          manufactured_date: string
+          price: number
+          product_id: string
+          product_name: string
+          quantity_produced: number
+          remaining_quantity: number
+          shelf_life: number | null
+          status: Database["public"]["Enums"]["batch_status"]
+          variant: string | null
+        }[]
+      }
       log_defect: {
         Args: {
           batch_id_value: string
@@ -706,7 +747,13 @@ export type Database = {
         Returns: string
       }
       produce_batch: {
-        Args: { product_id_value: string; quantity_value: number }
+        Args: {
+          batch_code_value?: string | null
+          expiration_date_value: string
+          product_id_value: string
+          production_date_value?: string
+          quantity_value: number
+        }
         Returns: string
       }
       receive_ingredient: {

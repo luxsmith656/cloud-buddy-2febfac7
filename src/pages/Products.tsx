@@ -32,7 +32,7 @@ const statusLabels: Record<string, string> = {
   "out-of-stock": "OUT OF STOCK",
 };
 
-const emptyForm = { name: "", barcode: "", category: "Produce", variant: "", shelf_life: 365, quantity: 0, min_stock: 10, expiration_date: "", image_url: "", unit_price: 0, estimated_unit_cost: 0 };
+const emptyForm = { name: "", barcode: "", category: "Produce", variant: "", shelf_life: 210, quantity: 0, min_stock: 10, expiration_date: "", image_url: "", unit_price: 0, estimated_unit_cost: 0 };
 
 const Products = () => {
   const [search, setSearch] = useState("");
@@ -122,7 +122,7 @@ const Products = () => {
   const openEdit = (p: Product) => {
     setEditingProduct(p);
     setForm({
-      name: p.name, barcode: p.barcode || "", category: p.category, variant: p.variant || "", shelf_life: p.shelf_life || 365,
+      name: p.name, barcode: p.barcode || "", category: p.category, variant: p.variant || "", shelf_life: p.shelf_life || 210,
       quantity: p.quantity, min_stock: p.min_stock, expiration_date: p.expiration_date || "",
       image_url: p.image_url || "", unit_price: p.unit_price, estimated_unit_cost: p.estimated_unit_cost,
     });
@@ -153,7 +153,11 @@ const Products = () => {
   const categories = [...new Set(products.map(p => p.category))];
   const filtered = products.filter(p => {
     const normalizedSearch = search.toLowerCase();
-    const matchSearch = p.name.toLowerCase().includes(normalizedSearch) || (p.barcode || "").toLowerCase().includes(normalizedSearch);
+    const productBatches = batches.filter((b: any) => b.product_id === p.id);
+    const matchSearch =
+      p.name.toLowerCase().includes(normalizedSearch) ||
+      (p.barcode || "").toLowerCase().includes(normalizedSearch) ||
+      productBatches.some((batch: any) => (batch.batch_code || batch.barcode_token || "").toLowerCase().includes(normalizedSearch));
     const matchCat = category === "all" || p.category === category;
     return matchSearch && matchCat;
   });
@@ -255,7 +259,7 @@ const Products = () => {
                         <td className="p-4">
                           {productBatches && productBatches.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
-                              {productBatches.map((b: any, idx: number) => {
+                              {productBatches.map((b: any) => {
                                 const batchKey = `${p.id}-${b.id}`;
                                 return (
                                   <button
@@ -268,7 +272,7 @@ const Products = () => {
                                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
                                     }`}
                                   >
-                                    Batch #{idx + 1}
+                                    {b.batch_code || b.id.slice(0, 8)}
                                   </button>
                                 );
                               })}

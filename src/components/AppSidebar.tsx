@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Package, Leaf, Truck, BookOpen,
   Factory, AlertTriangle, ArrowLeftRight, Bell, BarChart3,
   ClipboardList, LogOut, ShieldAlert, ClipboardCheck, UserCog,
-  PackagePlus, PackageMinus, History,
+  PackagePlus, PackageMinus, History, ScanBarcode, Barcode,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -26,6 +26,8 @@ const navItems = [
   { title: "Stock In/Out", url: "/stock-movements", icon: ArrowLeftRight },
   { title: "Adjustments", url: "/adjustments", icon: ClipboardCheck },
   { title: "Activity", url: "/activity", icon: History },
+  { title: "Barcode Scanner", url: "/barcode-scanner", icon: ScanBarcode },
+  { title: "Barcode Printing", url: "/barcode-printing", icon: Barcode },
   { title: "Alerts", url: "/alerts", icon: Bell },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Audit Logs", url: "/audit-logs", icon: ClipboardList },
@@ -41,11 +43,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-        <img src={ellineLogo} alt="Elline" width={40} height={40} />
+        <img src={ellineLogo} alt="Cloud Buddy" width={40} height={40} />
         {!collapsed && (
           <div>
-            <p className="font-heading font-bold text-sm text-foreground leading-tight">Elline Food</p>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">System</p>
+            <p className="font-heading font-bold text-sm text-foreground leading-tight">Cloud Buddy</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Inventory</p>
           </div>
         )}
       </div>

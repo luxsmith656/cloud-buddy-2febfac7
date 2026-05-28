@@ -87,7 +87,7 @@ const StockMovements = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  {["Type", "Item", "Category", "Quantity", "Date", "Remarks"].map(h => (
+                  {["Type", "Item", "Batch Barcode", "Category", "Quantity", "Date", "Remarks"].map(h => (
                     <th key={h} className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -103,6 +103,7 @@ const StockMovements = () => {
                         </span>
                       </td>
                       <td className="p-4 text-sm text-foreground">{m.item_name}</td>
+                      <td className="p-4 text-sm text-muted-foreground">{(m as any).batch_code || "-"}</td>
                       <td className="p-4"><span className="text-xs font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">{m.item_type}</span></td>
                       <td className="p-4 text-sm font-medium text-foreground">{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</td>
                       <td className="p-4 text-sm text-muted-foreground">{new Date(m.created_at).toLocaleString()}</td>

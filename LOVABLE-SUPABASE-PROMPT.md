@@ -18,6 +18,8 @@ Apply all SQL migration files in order from the repo:
 7. supabase/migrations/20260527143201_e504c6df-ebaa-4b48-a6e6-97b23938021d.sql
 8. supabase/migrations/20260527150000_grant_has_role_execute.sql
 9. supabase/migrations/20260527170000_real_life_inventory_flows.sql
+10. supabase/migrations/20260528100000_batch_barcode_system.sql
+11. supabase/migrations/20260528101000_label_seed_data.sql
 
 Important requirements:
 - Preserve existing data.
@@ -36,6 +38,20 @@ Important requirements:
 - Add dispatch_product RPC so outbound product stock, optional batch deduction, dispatch history, stock movement, activity history, alert creation, and audit log are committed atomically.
 - Keep audit_logs immutable with the new trigger.
 - Keep batch production and defect logging atomic through produce_batch and log_defect.
+- Replace old batch production behavior with the new barcode-aware produce_batch RPC signature:
+  produce_batch(product_id_value uuid, quantity_value integer, expiration_date_value date, batch_code_value text default null, production_date_value date default current_date).
+- Add unique batch-level batch_code/barcode_token/barcode_value fields to batches and backfill existing batches with internal CB-BTCH tokens.
+- Add batch_id and batch_code to stock_movements.
+- Update log_defect and dispatch_product so stock movements keep batch barcode details.
+- Add find_batch_by_barcode(text) for scanner lookup. The barcode must store only the internal token; product details stay in Supabase and are shown only inside Cloud Buddy after authenticated lookup.
+- Use 210-day shelf life for Banana Ketchup and Sweet Sauce. Use 240-day shelf life for Soy Sauce, Vinegar, and Fish Sauce.
+- Add label-informed seed ingredients exactly where readable:
+  Fish Sauce: Water, Fish Extract, Iodized Salt, Sodium Benzoate, Sodium Metabisulfite, Flavor Enhancer, Caramel Color.
+  Soy Sauce: Iodized Salt, Water, Hydrolyzed Soybean Protein, Caramel as Color, Citric Acid as Acidulant, Sodium Benzoate as Preservative.
+  Vinegar: Water, Cane Vinegar, Caramel as Colorant.
+  Sweet Sauce: Sugar, Water, Spices, Modified Starch, Iodized Salt, Garlic, Acidulant, Sodium Benzoate as Preservative, Artificial Food Colors with Tartrazine.
+  Banana Ketchup: Banana, Water, Sugar, Modified Starch, Iodized Salt, Onion, Garlic, Spices, Vinegar, FD&C Red No. 40, FD&C Yellow No. 5, Sodium Benzoate as Preservative.
+- Add Tomato Sauce, Spaghetti Sauce, Hot Sauce, and Oyster Sauce as estimated placeholder products and editable demo recipes only. Do not treat their demo quantities as confirmed formulas.
 - Harden the images storage bucket: public read, admin-only upload/update/delete, PNG/JPG/WEBP only, 5 MB limit.
 - Add the admin profile read policy so admins can see user profiles in the Role Management page.
 
@@ -60,6 +76,12 @@ Then test these workflows:
 - Admin can dispatch a product; stock decreases, optional batch quantity decreases, dispatch history is recorded, stock movement is created, and the activity page shows the dispatch.
 - Reports export inventory, receiving, dispatch, batch, usage, and defect data safely to CSV/PDF.
 - Batch production works through produce_batch.
+- Each production run creates its own separate batch row.
+- Batch Production shows Batch Barcode/Lot Code, not "Batch 1" or "Batch 2".
+- Expiration date is editable and required during batch creation, and the exact entered date is saved.
+- Duplicate batch barcodes are rejected.
+- Barcode Scanner can find a batch by token and shows product, category, manufactured date, expiration, shelf life, price/SRP, produced quantity, remaining stock, status, defect status, and recent stock movements.
+- Barcode Printing can filter batches and print compact A4 labels with Code 128 barcode tokens.
 - Defect logging works through log_defect.
 - Recipe create/edit works through save_recipe and does not leave partial recipe ingredient rows.
 - Image upload rejects SVG and accepts PNG/JPG/WEBP.

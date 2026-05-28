@@ -20,6 +20,8 @@ const Defects = lazy(() => import("./pages/Defects"));
 const StockMovements = lazy(() => import("./pages/StockMovements"));
 const InventoryAdjustments = lazy(() => import("./pages/InventoryAdjustments"));
 const InventoryActivity = lazy(() => import("./pages/InventoryActivity"));
+const BarcodeScanner = lazy(() => import("./pages/BarcodeScanner"));
+const BarcodePrinting = lazy(() => import("./pages/BarcodePrinting"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const Reports = lazy(() => import("./pages/Reports"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
@@ -60,6 +62,8 @@ function AppRoutes() {
         <Route path="/stock-movements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
         <Route path="/adjustments" element={<ProtectedRoute><InventoryAdjustments /></ProtectedRoute>} />
         <Route path="/activity" element={<ProtectedRoute><InventoryActivity /></ProtectedRoute>} />
+        <Route path="/barcode-scanner" element={<ProtectedRoute><BarcodeScanner /></ProtectedRoute>} />
+        <Route path="/barcode-printing" element={<ProtectedRoute><BarcodePrinting /></ProtectedRoute>} />
         <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
